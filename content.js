@@ -12,6 +12,27 @@ function createdAIButton(){
 
 }
 
+
+function getEmailContent(){
+    const selectors = [
+        '.h7',
+        '.a3s.aiL',
+        '.gmail_quote', 
+        '[role="presentation"]'
+    ];
+
+    for (const selector of selectors) {
+        const content = document.querySelector(selector);
+        if(content){
+            return content.innerHTML.trim();
+
+        }
+        return '';
+        
+    }
+}
+
+
 function findComposeToolbar(){
 
 
@@ -49,8 +70,42 @@ function injectButton(){
     button.classList.add('ai-reply-buton');
 
     button.addEventListener('click', async () => {
-        
+        try{
+            button.innerHTML='Generating.....';
+            button.disabled = true;
 
+            const emailContent = getEmailContent();
+           const response =  await fetch('http://localhost:8080/api/email/generate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    emailContent: emailContent,
+                    tone: "professional"
+                })
+            });
+
+            if(!response.ok) {
+                throw new Error('API Request Failed');
+            }
+
+            const generatedReply = await response.text();
+            const composeBox = document.querySelector('[role="textbox"][g_editable="true"]');
+
+            if(composeBox){
+                composeBox.focus();
+                document.execCommand('insertText', false, generatedReply);
+            } else{
+                console.error('Compose Box was not found');
+            }
+        }catch(error){
+                console.error(error);
+                alert('Failed to generate reply');
+        } finally{
+            button.innerHTML = 'AI Reply';
+            button.disabled = false;
+        }
 
     });
 
